@@ -26,6 +26,26 @@ export interface CustomerListResponse {
   total: number;
 }
 
+export interface CustomerAddress {
+  id: number;
+  customerId: number;
+  addressLine1: string;
+  addressLine2: string | null;
+  city: string;
+  state: string | null;
+  postalCode: string | null;
+  country: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CustomerAddressListResponse {
+  items: CustomerAddress[];
+  page: number;
+  limit: number;
+  total: number;
+}
+
 export type RoleName = 'CUSTOMER' | 'SUPER_ADMIN' | 'ADMIN' | 'ORDER_MANAGER' | 'CONTENT_MANAGER';
 
 export interface User {

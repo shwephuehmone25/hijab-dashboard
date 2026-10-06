@@ -3,7 +3,7 @@ import { Table, Button, Space, Input, Tag, Modal, Form, Select, Drawer, Descript
 import type { MenuProps } from 'antd';
 import { PlusOutlined, EditOutlined, SearchOutlined, DeleteOutlined, HomeOutlined, TagsOutlined, MoreOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import api from '@/lib/api';
-import type { User, UserMeta, RoleName, UserRole } from '@/lib/types';
+import type { CustomerAddress, User, UserMeta, RoleName, UserRole } from '@/lib/types';
 import { message } from '@/lib/antdApp';
 
 interface CustomerFormValues {
@@ -15,6 +15,15 @@ interface CustomerFormValues {
 
 interface MetaFormValues {
   customMeta?: Array<{ key: string; value: unknown }>;
+}
+
+interface AddressFormValues {
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state?: string;
+  postalCode?: string;
+  country: string;
 }
 
 const roleOptions: Array<{ value: RoleName; label: string }> = [
@@ -32,11 +41,18 @@ const Customers = () => {
   const [pagination, setPagination] = useState({ current: 1, pageSize: 20, total: 0 });
   const [modalVisible, setModalVisible] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [addressCustomer, setAddressCustomer] = useState<User | null>(null);
+  const [addresses, setAddresses] = useState<CustomerAddress[]>([]);
+  const [addressesLoading, setAddressesLoading] = useState(false);
+  const [addressModalVisible, setAddressModalVisible] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<CustomerAddress | null>(null);
+  const [savingAddress, setSavingAddress] = useState(false);
   const [detailCustomer, setDetailCustomer] = useState<User | null>(null);
   const [metaModalVisible, setMetaModalVisible] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<User | null>(null);
   const [form] = Form.useForm();
   const [metaForm] = Form.useForm();
+  const [addressForm] = Form.useForm<AddressFormValues>();
   const [saving, setSaving] = useState(false);
   const [savingCustomer, setSavingCustomer] = useState(false);
 
@@ -100,14 +116,88 @@ const Customers = () => {
     }
   };
 
-  const handleViewAddresses = async (customer: User) => {
+  const fetchAddresses = async (customerId: number) => {
+    setAddressesLoading(true);
     try {
-      const details = await api.customers.get(customer.id);
-      setEditingCustomer(details);
-      setDrawerVisible(true);
+      const response = await api.customers.addresses.list(customerId);
+      setAddresses(response.items ?? []);
     } catch {
       message.error('Failed to load customer addresses');
+    } finally {
+      setAddressesLoading(false);
     }
+  };
+
+  const handleViewAddresses = (customer: User) => {
+    setAddressCustomer(customer);
+    setAddresses([]);
+    setDrawerVisible(true);
+    void fetchAddresses(customer.id);
+  };
+
+  const handleCreateAddress = () => {
+    setEditingAddress(null);
+    addressForm.resetFields();
+    setAddressModalVisible(true);
+  };
+
+  const handleEditAddress = async (address: CustomerAddress) => {
+    if (!addressCustomer) return;
+    try {
+      const details = await api.customers.addresses.get(addressCustomer.id, address.id);
+      setEditingAddress(details);
+      addressForm.setFieldsValue({
+        addressLine1: details.addressLine1,
+        addressLine2: details.addressLine2 ?? undefined,
+        city: details.city,
+        state: details.state ?? undefined,
+        postalCode: details.postalCode ?? undefined,
+        country: details.country,
+      });
+      setAddressModalVisible(true);
+    } catch {
+      message.error('Failed to load address details');
+    }
+  };
+
+  const handleSaveAddress = async (values: AddressFormValues) => {
+    if (!addressCustomer || savingAddress) return;
+    setSavingAddress(true);
+    try {
+      if (editingAddress) {
+        await api.customers.addresses.update(addressCustomer.id, editingAddress.id, values);
+        message.success('Address updated successfully');
+      } else {
+        await api.customers.addresses.create(addressCustomer.id, values);
+        message.success('Address created successfully');
+      }
+      setAddressModalVisible(false);
+      await fetchAddresses(addressCustomer.id);
+    } catch {
+      message.error(`Failed to ${editingAddress ? 'update' : 'create'} address`);
+    } finally {
+      setSavingAddress(false);
+    }
+  };
+
+  const handleDeleteAddress = (address: CustomerAddress) => {
+    if (!addressCustomer) return;
+    Modal.confirm({
+      title: 'Delete Address',
+      content: 'Are you sure you want to delete this address?',
+      okText: 'Delete',
+      okType: 'danger',
+      onOk: async () => {
+        try {
+          await api.customers.addresses.delete(addressCustomer.id, address.id);
+          message.success('Address deleted successfully');
+          await fetchAddresses(addressCustomer.id);
+        } catch (error) {
+          message.error('Failed to delete address');
+          throw error;
+        }
+      },
+    });
   };
 
   const handleManageMeta = async (customer: User) => {
@@ -392,23 +482,45 @@ const Customers = () => {
 
       {/* Addresses Drawer */}
       <Drawer
-        title="Customer Addresses"
+        title={`Customer Addresses${addressCustomer ? `: ${addressCustomer.display_name}` : ''}`}
         width={600}
         open={drawerVisible}
-        onClose={() => setDrawerVisible(false)}
+        onClose={() => {
+          setDrawerVisible(false);
+          setAddressCustomer(null);
+          setAddresses([]);
+        }}
+        extra={(
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateAddress}>
+            Add Address
+          </Button>
+        )}
       >
-        {editingCustomer?.addresses && editingCustomer.addresses.length > 0 ? (
+        {addressesLoading ? (
+          <div>Loading addresses...</div>
+        ) : addresses.length > 0 ? (
           <Space direction="vertical" style={{ width: '100%' }}>
-            {editingCustomer.addresses.map(addr => (
-              <div key={addr.id} style={{ padding: 16, border: '1px solid #f0f0f0', borderRadius: 4 }}>
-                <div><strong>{addr.first_name} {addr.last_name}</strong></div>
-                {addr.company && <div>{addr.company}</div>}
-                <div>{addr.address_1}</div>
-                {addr.address_2 && <div>{addr.address_2}</div>}
-                <div>{addr.city}, {addr.state} {addr.postcode}</div>
-                <div>{addr.country}</div>
-                {addr.phone && <div>Phone: {addr.phone}</div>}
-                {addr.is_default && <Tag color="blue">Default</Tag>}
+            {addresses.map(address => (
+              <div key={address.id} style={{ padding: 16, border: '1px solid #f0f0f0', borderRadius: 4 }}>
+                <div>{address.addressLine1}</div>
+                {address.addressLine2 && <div>{address.addressLine2}</div>}
+                <div>
+                  {[address.city, address.state, address.postalCode].filter(Boolean).join(', ')}
+                </div>
+                <div>{address.country}</div>
+                <Space style={{ marginTop: 12 }}>
+                  <Button size="small" icon={<EditOutlined />} onClick={() => handleEditAddress(address)}>
+                    Edit
+                  </Button>
+                  <Button
+                    size="small"
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={() => handleDeleteAddress(address)}
+                  >
+                    Delete
+                  </Button>
+                </Space>
               </div>
             ))}
           </Space>
@@ -416,6 +528,50 @@ const Customers = () => {
           <div>No addresses found</div>
         )}
       </Drawer>
+
+      <Modal
+        title={editingAddress ? 'Edit Address' : 'Add Address'}
+        open={addressModalVisible}
+        onCancel={() => { if (!savingAddress) setAddressModalVisible(false); }}
+        onOk={() => addressForm.submit()}
+        confirmLoading={savingAddress}
+        cancelButtonProps={{ disabled: savingAddress }}
+        destroyOnClose
+      >
+        <Form
+          form={addressForm}
+          layout="vertical"
+          onFinish={handleSaveAddress}
+          disabled={savingAddress}
+        >
+          <Form.Item
+            name="addressLine1"
+            label="Address Line 1"
+            rules={[{ required: true, message: 'Address line 1 is required' }]}
+          >
+            <Input maxLength={255} />
+          </Form.Item>
+          <Form.Item name="addressLine2" label="Address Line 2">
+            <Input maxLength={255} />
+          </Form.Item>
+          <Form.Item name="city" label="City" rules={[{ required: true, message: 'City is required' }]}>
+            <Input maxLength={100} />
+          </Form.Item>
+          <Form.Item name="state" label="State/Region">
+            <Input maxLength={100} />
+          </Form.Item>
+          <Form.Item name="postalCode" label="Postal Code">
+            <Input maxLength={20} />
+          </Form.Item>
+          <Form.Item
+            name="country"
+            label="Country"
+            rules={[{ required: true, message: 'Country is required' }]}
+          >
+            <Input maxLength={100} />
+          </Form.Item>
+        </Form>
+      </Modal>
 
       {/* Meta Management Modal */}
       <Modal

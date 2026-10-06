@@ -44,6 +44,8 @@ import {
   UserPoints,
   Customer,
   CustomerListResponse,
+  CustomerAddress,
+  CustomerAddressListResponse,
   PointsTransaction,
   PointsRule,
   PointsProduct,
@@ -280,6 +282,18 @@ const createApi = () => {
       create: (payload: UnknownRecord): Promise<Customer> => api.post('/customers', payload),
       update: (id: number, payload: UnknownRecord): Promise<Customer> => api.patch(`/customers/${id}`, payload),
       delete: (id: number): Promise<unknown> => api.delete(`/customers/${id}`),
+      addresses: {
+        list: (customerId: number): Promise<CustomerAddressListResponse> =>
+          api.get(`/customers/${customerId}/addresses?page=1&limit=100`),
+        get: (customerId: number, addressId: number): Promise<CustomerAddress> =>
+          api.get(`/customers/${customerId}/addresses/${addressId}`),
+        create: (customerId: number, payload: UnknownRecord): Promise<CustomerAddress> =>
+          api.post(`/customers/${customerId}/addresses`, payload),
+        update: (customerId: number, addressId: number, payload: UnknownRecord): Promise<CustomerAddress> =>
+          api.patch(`/customers/${customerId}/addresses/${addressId}`, payload),
+        delete: (customerId: number, addressId: number): Promise<unknown> =>
+          api.delete(`/customers/${customerId}/addresses/${addressId}`),
+      },
     },
     users: {
       list: (params: QueryParams): Promise<PaginatedResponse<User>> => {
