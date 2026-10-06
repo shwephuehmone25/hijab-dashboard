@@ -19,6 +19,7 @@ import {
   OrderShipment,
   ProductAttribute,
   Category,
+  CategoryImageUploadResponse,
   Tag,
   AuthLogin,
   Pagination,
@@ -98,6 +99,11 @@ const customerToUser = (customer: Customer): User => ({
 // Request interceptor to add auth token and transform data
 api.interceptors.request.use(
   (config) => {
+    if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+      // Let the browser/Axios add multipart/form-data with its generated boundary.
+      config.headers.delete('Content-Type');
+    }
+
     const token = localStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -327,10 +333,26 @@ const createApi = () => {
       },
     },
     products: {
-      list: (params: QueryParams): Promise<PaginatedResponse<Product>> => {
-        const validated = validateQueryParams(params);
-        const queryString = buildQueryParams(validated).toString();
-        return api.get(`/products?${queryString}`);
+      list: async (params: QueryParams): Promise<PaginatedResponse<Product>> => {
+        const query = new URLSearchParams({
+          page: String(params.page ?? 1),
+          limit: String(params.pageSize ?? 20),
+        });
+        if (params.search?.trim()) query.set('search', params.search.trim());
+        if (params.filter?.categoryId) query.set('categoryId', String(params.filter.categoryId));
+        if (params.filter?.status) query.set('status', String(params.filter.status));
+        const response = await api.get(`/products?${query.toString()}`) as unknown as {
+          items: Product[]; page: number; limit: number; total: number;
+        };
+        return {
+          items: response.items,
+          pagination: {
+            page: response.page,
+            pageSize: response.limit,
+            total: response.total,
+            totalPages: Math.ceil(response.total / response.limit),
+          },
+        };
       },
       search: (params: QueryParams): Promise<PaginatedResponse<Product>> => {
         const validated = validateQueryParams(params);
@@ -338,9 +360,10 @@ const createApi = () => {
         return api.get(`/products/search?${queryString}`);
       },
       get: (id: number): Promise<Product> => api.get(`/products/${id}`),
-      createSimple: (payload: UnknownRecord): Promise<Product> => api.post('/products/simple', payload),
-      createVariable: (payload: UnknownRecord): Promise<Product> => api.post('/products/variable', payload),
-      update: (id: number, payload: UnknownRecord): Promise<Product> => api.put(`/products/${id}`, payload),
+      create: (payload: UnknownRecord): Promise<Product> => api.post('/products', payload),
+      createSimple: (payload: UnknownRecord): Promise<Product> => api.post('/products', payload),
+      createVariable: (payload: UnknownRecord): Promise<Product> => api.post('/products', payload),
+      update: (id: number, payload: UnknownRecord): Promise<Product> => api.patch(`/products/${id}`, payload),
       delete: (id: number): Promise<unknown> => api.delete(`/products/${id}`),
       batchDelete: (payload: UnknownRecord): Promise<unknown> => api.delete('/products/batch', { data: payload }),
       batchUpdateStatus: (payload: UnknownRecord): Promise<unknown> => api.put('/products/status/batch', payload),
@@ -359,6 +382,64 @@ const createApi = () => {
       stock: {
         update: (productId: number, payload: UnknownRecord) => api.put(`/products/stock/${productId}`, payload),
         batchUpdate: (payload: UnknownRecord) => api.put('/products/stock/batch', payload),
+      },
+    },
+    categories: {
+      list: async (params: QueryParams = {}): Promise<PaginatedResponse<Category>> => {
+        const query = new URLSearchParams({
+          page: String(params.page ?? 1),
+          limit: String(params.pageSize ?? 20),
+        });
+        if (params.search?.trim()) query.set('search', params.search.trim());
+        if (params.filter?.parentId) query.set('parentId', String(params.filter.parentId));
+        if (params.filter?.onlyChildren) query.set('onlyChildren', 'true');
+        const response = await api.get(`/categories?${query.toString()}`) as unknown as {
+          items: Category[]; page: number; limit: number; total: number;
+        };
+        return {
+          items: response.items.map((category) => ({
+            ...category,
+            imageUrl: category.imageUrl ?? category.image_url ?? null,
+          })),
+          pagination: {
+            page: response.page,
+            pageSize: response.limit,
+            total: response.total,
+            totalPages: Math.ceil(response.total / response.limit),
+          },
+        };
+      },
+      get: async (id: number): Promise<Category> => {
+        const category = await api.get(`/categories/${id}`) as unknown as Category;
+        return {
+          ...category,
+          imageUrl: category.imageUrl ?? category.image_url ?? null,
+        };
+      },
+      create: (payload: UnknownRecord): Promise<Category> => api.post('/categories', payload),
+      update: (id: number, payload: UnknownRecord): Promise<Category> => api.patch(`/categories/${id}`, payload),
+      delete: (id: number): Promise<unknown> => api.delete(`/categories/${id}`),
+      uploadImage: async (file: File): Promise<CategoryImageUploadResponse> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const uploaded = await api.post('/categories/images', formData, {
+          timeout: 30_000,
+        }) as unknown as CategoryImageUploadResponse;
+
+        if (
+          !uploaded.url?.trim()
+          || !uploaded.key?.trim()
+          || !uploaded.contentType?.startsWith('image/')
+          || !Number.isFinite(uploaded.bytes)
+        ) {
+          throw new Error('AWS S3 returned an invalid category image response');
+        }
+
+        return {
+          ...uploaded,
+          url: uploaded.url.trim(),
+          key: uploaded.key.trim(),
+        };
       },
     },
     orders: {

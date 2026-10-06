@@ -93,18 +93,19 @@ export interface UserMeta {
 
 export interface Product {
   id: number;
+  categoryId: number;
   parent_id?: number | null;
   name: string;
-  slug: string;
-  type: 'simple' | 'variable' | 'variant';
-  status: 'draft' | 'publish' | 'archived';
+  slug?: string;
+  type?: 'simple' | 'variable' | 'variant';
+  status: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED' | 'draft' | 'publish' | 'archived';
   sku?: string;
   regular_price?: number;
   sale_price?: number;
   stock_quantity?: number;
-  stock_status: 'instock' | 'outofstock' | 'onbackorder';
-  manage_stock: boolean;
-  description?: string;
+  stock_status?: 'instock' | 'outofstock' | 'onbackorder';
+  manage_stock?: boolean;
+  description?: string | null;
   short_description?: string;
   category_ids?: number[];
   tag_ids?: number[];
@@ -116,8 +117,10 @@ export interface Product {
   categories?: Category[];
   tags?: Tag[];
   meta?: ProductMeta[];
-  created_at: string;
-  updated_at: string;
+  createdAt?: string;
+  updatedAt?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface ProductMeta {
@@ -329,17 +332,28 @@ export interface Setting {
 
 export interface Category {
   id: number;
-  term_id: number;
+  parentId?: number | null;
+  term_id?: number;
   name: string;
-  slug: string;
+  slug?: string;
   parent_id?: number;
-  description?: string;
+  description?: string | null;
   count?: number;
   menu_order?: number;
+  imageUrl?: string | null;
   image_url?: string;
   children?: Category[];
+  createdAt?: string;
+  updatedAt?: string;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface CategoryImageUploadResponse {
+  url: string;
+  key: string;
+  contentType: string;
+  bytes: number;
 }
 
 export interface Tag {
