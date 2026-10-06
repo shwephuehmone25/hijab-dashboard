@@ -319,6 +319,7 @@ const Customers = () => {
       <Input
         placeholder="Search customers..."
         prefix={<SearchOutlined />}
+        allowClear
         value={searchText}
         onChange={(e) => setSearchText(e.target.value)}
         style={{ marginBottom: 16, maxWidth: 400 }}
