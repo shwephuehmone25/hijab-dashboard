@@ -13,7 +13,7 @@ import type { MenuProps } from "antd";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useFilteredMenu } from "@/hooks/useFilteredMenu";
 import { menuConfig } from "@/config/menuConfig";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import md5 from "crypto-js/md5";
 
 const { Header, Sider, Content } = Layout;
@@ -87,7 +87,7 @@ const AdminLayout = () => {
             color: "#1890ff",
           }}
         >
-          {collapsed ? "EA" : "E-Admin"}
+          {collapsed ? "HA" : "Hijab-Admin"}
         </div>
         <Menu
           theme="light"

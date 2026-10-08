@@ -26,6 +26,8 @@ import {
   TagOutlined,
   ThunderboltOutlined,
   TrophyOutlined,
+  DatabaseOutlined,
+  ApartmentOutlined,
 } from "@ant-design/icons";
 
 /**
@@ -79,6 +81,18 @@ export const menuConfig: MenuItemConfig[] = [
         permissions: ["product.list"], // Maps to: GET /admin/products
       },
       {
+        key: "/admin/inventory",
+        icon: <DatabaseOutlined />,
+        label: "Inventory",
+        permissions: ["product.list"],
+      },
+      {
+        key: "/admin/product-variants",
+        icon: <ApartmentOutlined />,
+        label: "Product Variants",
+        permissions: ["product.list"],
+      },
+      {
         key: "/admin/products/new",
         icon: <PlusOutlined />,
         label: "Add New",
@@ -115,6 +129,12 @@ export const menuConfig: MenuItemConfig[] = [
         icon: <ShoppingCartOutlined />,
         label: "Orders",
         permissions: ["order.list"], // Maps to: GET /admin/orders
+      },
+      {
+        key: "/admin/carts",
+        icon: <ShoppingCartOutlined />,
+        label: "Cart",
+        permissions: ["cart.list"], // Maps to: GET /admin/carts
       },
       {
         key: "/admin/orders/stats",

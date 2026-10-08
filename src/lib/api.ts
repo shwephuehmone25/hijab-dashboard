@@ -55,6 +55,10 @@ import {
   CreatePointsRuleRequest,
   UpdatePointsRuleRequest,
   CreatePointsProductRequest,
+  StockUpdate,
+  Cart,
+  UpdateCartRequest,
+  UpdateCartItemRequest,
 } from './types';
 import type {
   OverviewStats,
@@ -115,6 +119,13 @@ api.interceptors.request.use(
 );
 
 let refreshInFlight: Promise<{ access_token: string; refresh_token: string }> | null = null;
+
+const expireSession = () => {
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  localStorage.removeItem('admin_user');
+  window.dispatchEvent(new Event('admin-auth-expired'));
+};
 
 // Response interceptor for token refresh and error handling
 api.interceptors.response.use(
@@ -181,12 +192,7 @@ api.interceptors.response.use(
           return api.request(originalRequest);
         } catch (refreshError) {
           // Refresh failed, clear tokens and redirect to login
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          localStorage.removeItem('admin_user');
-          window.location.href = import.meta.env.VITE_ROUTER_MODE === 'hash'
-            ? `${import.meta.env.BASE_URL}#/login`
-            : `${import.meta.env.BASE_URL}login`;
+          expireSession();
 
           return Promise.reject({
             success: false,
@@ -196,12 +202,7 @@ api.interceptors.response.use(
         }
       } else {
         // No refresh token, redirect to login
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('admin_user');
-        window.location.href = import.meta.env.VITE_ROUTER_MODE === 'hash'
-          ? `${import.meta.env.BASE_URL}#/login`
-          : `${import.meta.env.BASE_URL}login`;
+        expireSession();
 
         return Promise.reject({
           success: false,
@@ -301,6 +302,54 @@ const createApi = () => {
           api.delete(`/customers/${customerId}/addresses/${addressId}`),
       },
     },
+    carts: {
+      list: async (params: QueryParams = {}): Promise<PaginatedResponse<Cart>> => {
+        const validated = validateQueryParams(params);
+        const page = validated.page ?? 1;
+        const limit = validated.pageSize ?? 20;
+        const query = new URLSearchParams({
+          page: String(page),
+          limit: String(limit),
+        });
+        if (validated.search?.trim()) query.set('search', validated.search.trim());
+
+        const response = await api.get(`/carts?${query.toString()}`) as unknown as {
+          items?: Cart[];
+          data?: Cart[];
+          page?: number;
+          limit?: number;
+          total?: number;
+          totalPages?: number;
+          pagination?: Partial<Pagination>;
+        };
+        const items = response.items ?? response.data ?? [];
+        const responsePage = response.pagination?.page ?? response.page ?? page;
+        const responsePageSize = response.pagination?.pageSize ?? response.limit ?? limit;
+        const total = response.pagination?.total ?? response.total ?? items.length;
+
+        return {
+          items,
+          pagination: {
+            page: responsePage,
+            pageSize: responsePageSize,
+            total,
+            totalPages: response.pagination?.totalPages
+              ?? response.totalPages
+              ?? Math.ceil(total / responsePageSize),
+          },
+        };
+      },
+      get: (id: number): Promise<Cart> => api.get(`/carts/${id}`),
+      update: (id: number, payload: UpdateCartRequest): Promise<Cart> =>
+        api.patch(`/carts/${id}`, payload),
+      delete: (id: number): Promise<unknown> => api.delete(`/carts/${id}`),
+      items: {
+        update: (cartId: number, itemId: number, payload: UpdateCartItemRequest): Promise<Cart> =>
+          api.patch(`/carts/${cartId}/items/${itemId}`, payload),
+        delete: (cartId: number, itemId: number): Promise<Cart> =>
+          api.delete(`/carts/${cartId}/items/${itemId}`),
+      },
+    },
     users: {
       list: (params: QueryParams): Promise<PaginatedResponse<User>> => {
         const validated = validateQueryParams(params);
@@ -341,6 +390,7 @@ const createApi = () => {
         if (params.search?.trim()) query.set('search', params.search.trim());
         if (params.filter?.categoryId) query.set('categoryId', String(params.filter.categoryId));
         if (params.filter?.status) query.set('status', String(params.filter.status));
+        if (params.filter?.type) query.set('filter[type]', String(params.filter.type));
         const response = await api.get(`/products?${query.toString()}`) as unknown as {
           items: Product[]; page: number; limit: number; total: number;
         };
@@ -380,8 +430,10 @@ const createApi = () => {
         delete: (variantId: number): Promise<unknown> => api.delete(`/products/variants/${variantId}`),
       },
       stock: {
-        update: (productId: number, payload: UnknownRecord) => api.put(`/products/stock/${productId}`, payload),
-        batchUpdate: (payload: UnknownRecord) => api.put('/products/stock/batch', payload),
+        update: (productId: number, quantity: number): Promise<unknown> =>
+          api.put(`/products/stock/${productId}`, undefined, { params: { quantity } }),
+        batchUpdate: (updates: StockUpdate[]): Promise<unknown> =>
+          api.put('/products/stock/batch', { updates }),
       },
     },
     categories: {
@@ -704,11 +756,45 @@ const createApi = () => {
       // Dashboard overview and statistics
       overviewStats: (): Promise<OverviewStats> => api.get('/dashboard/overview'),
       salesStats: (period: string): Promise<SalesStats[]> => api.get(`/dashboard/sales?period=${period}`),
-      recentOrders: (limit: number = 10): Promise<Order[]> => api.get(`/dashboard/recent-orders?limit=${limit}`),
+      recentOrders: async (limit: number = 10): Promise<Order[]> => {
+        const query = new URLSearchParams({ page: '1', limit: String(limit) });
+        const response = await api.get(`/orders?${query.toString()}`) as unknown as {
+          items?: Order[];
+          data?: Order[];
+        } | Order[];
+
+        if (Array.isArray(response)) return response.slice(0, limit);
+        return (response.items ?? response.data ?? []).slice(0, limit);
+      },
       topProducts: (period: string, limit: number = 10): Promise<TopProduct[]> =>
         api.get(`/dashboard/top-products?period=${period}&limit=${limit}`),
       orderStatusStats: (): Promise<OrderStatusStats[]> => api.get('/dashboard/order-status'),
-      revenueByPeriod: (period: string): Promise<RevenueData[]> => api.get(`/dashboard/revenue?period=${period}`),
+      revenueByPeriod: async (period: string): Promise<RevenueData[]> => {
+        const query = new URLSearchParams({ page: '1', limit: '100' });
+        const response = await api.get(`/orders?${query.toString()}`) as unknown as {
+          items?: Order[];
+          data?: Order[];
+        } | Order[];
+        const orders = Array.isArray(response) ? response : response.items ?? response.data ?? [];
+        const revenueByDate = new Map<string, number>();
+
+        for (const order of orders) {
+          const orderDate = new Date(order.created_at);
+          if (Number.isNaN(orderDate.getTime())) continue;
+
+          if (period === 'weekly') {
+            const day = orderDate.getUTCDay();
+            const daysFromMonday = day === 0 ? 6 : day - 1;
+            orderDate.setUTCDate(orderDate.getUTCDate() - daysFromMonday);
+          }
+
+          const dateKey = orderDate.toISOString().slice(0, 10);
+          revenueByDate.set(dateKey, (revenueByDate.get(dateKey) ?? 0) + (order.order_total ?? 0));
+        }
+
+        return Array.from(revenueByDate, ([date, revenue]) => ({ period: date, revenue }))
+          .sort((left, right) => left.period.localeCompare(right.period));
+      },
     },
   };
 };

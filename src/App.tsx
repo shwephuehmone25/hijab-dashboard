@@ -3,7 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, HashRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
@@ -11,6 +12,8 @@ import AdminLayout from "./layouts/AdminLayout";
 import Dashboard from "./pages/admin/Dashboard";
 import Products from "./pages/admin/Products";
 import ProductEditor from "./pages/admin/ProductEditor";
+import Inventory from "./pages/admin/Inventory";
+import ProductVariants from "./pages/admin/ProductVariants";
 import Orders from "./pages/admin/Orders";
 import OrderStats from "./pages/admin/OrderStats";
 import Customers from "./pages/admin/Customers";
@@ -28,6 +31,7 @@ import Shipments from "./pages/admin/Shipments";
 import ShippingMethods from "./pages/admin/ShippingMethods";
 import Comments from "./pages/admin/Comments";
 import Coupons from "./pages/admin/Coupons";
+import Carts from "./pages/admin/Carts";
 import { skipLogin } from "@/lib/devAuth";
 
 const queryClient = new QueryClient();
@@ -75,9 +79,12 @@ const App = () => (
                 <Route path="products" element={<Products />} />
                 <Route path="products/new" element={<ProductEditor />} />
                 <Route path="products/:id/edit" element={<ProductEditor />} />
+                <Route path="inventory" element={<Inventory />} />
+                <Route path="product-variants" element={<ProductVariants />} />
                 <Route path="categories" element={<Categories />} />
                 <Route path="tags" element={<Tags />} />
                 <Route path="orders" element={<Orders />} />
+                <Route path="carts" element={<Carts />} />
                 <Route path="orders/stats" element={<OrderStats />} />
                 <Route path="shipments" element={<Shipments />} />
                 <Route path="customers" element={<Customers />} />
@@ -116,9 +123,12 @@ const App = () => (
                 <Route path="products" element={<Products />} />
                 <Route path="products/new" element={<ProductEditor />} />
                 <Route path="products/:id/edit" element={<ProductEditor />} />
+                <Route path="inventory" element={<Inventory />} />
+                <Route path="product-variants" element={<ProductVariants />} />
                 <Route path="categories" element={<Categories />} />
                 <Route path="tags" element={<Tags />} />
                 <Route path="orders" element={<Orders />} />
+                <Route path="carts" element={<Carts />} />
                 <Route path="orders/stats" element={<OrderStats />} />
                 <Route path="shipments" element={<Shipments />} />
                 <Route path="customers" element={<Customers />} />

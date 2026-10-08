@@ -1,7 +1,7 @@
 import { Button } from 'antd';
 import { Link } from 'react-router-dom';
 import { LoginOutlined } from '@ant-design/icons';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 
 const Index = () => {
   const { admin, loading } = useAuth();
@@ -36,7 +36,7 @@ const Index = () => {
     >
       <div style={{ textAlign: 'center', color: 'white' }}>
         <h1 style={{ fontSize: 64, fontWeight: 'bold', marginBottom: 16 }}>
-          E-Commerce Admin
+          momtazhijab Admin
         </h1>
         <p style={{ fontSize: 24, marginBottom: 32, opacity: 0.9 }}>
           Powerful dashboard for managing your online store

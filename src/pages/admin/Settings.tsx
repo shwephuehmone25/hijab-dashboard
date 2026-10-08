@@ -86,7 +86,7 @@ const Settings = () => {
       children: (
         <>
           <Form.Item name="site_title" label="Site Title">
-            <Input placeholder="E-Commerce Store" />
+            <Input placeholder="momtazhijab Store" />
           </Form.Item>
           <Form.Item name="site_tagline" label="Tagline">
             <Input placeholder="Your one-stop shop" />
@@ -205,7 +205,7 @@ const Settings = () => {
         layout="vertical"
         onFinish={onFinish}
         initialValues={{
-          site_title: "E-Commerce Store",
+          site_title: "momtazhijab Store",
           site_tagline: "Your one-stop shop",
           admin_email: "admin@example.com",
           timezone: "UTC",

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { filterMenuItems, convertToAntdMenu } from "@/utils/menu/filterMenuItems";
 import type { MenuItemConfig } from "@/config/menuConfig";
 import type { MenuProps } from "antd";

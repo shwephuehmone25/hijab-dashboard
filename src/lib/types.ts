@@ -10,6 +10,48 @@ export interface PaginatedResponse<T> {
   pagination: Pagination;
 }
 
+export interface CartItem {
+  id?: number;
+  productId: number;
+  productName?: string;
+  sku?: string;
+  featuredImage?: string | null;
+  quantity: number;
+  regularPrice?: number;
+  salePrice?: number | null;
+  subtotal: number;
+}
+
+export interface Cart {
+  id: number;
+  sessionId?: string;
+  customerId?: number | null;
+  customerName?: string | null;
+  customerEmail?: string | null;
+  status?: string;
+  couponCode?: string | null;
+  discount: number;
+  subtotal: number;
+  total: number;
+  itemCount: number;
+  items: CartItem[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface UpdateCartRequest {
+  status?: string;
+  couponCode?: string | null;
+  items?: Array<{
+    productId: number;
+    quantity: number;
+  }>;
+}
+
+export interface UpdateCartItemRequest {
+  quantity: number;
+}
+
 export interface Customer {
   id: number;
   name: string;
@@ -121,6 +163,12 @@ export interface Product {
   updatedAt?: string;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface StockUpdate {
+  product_id: number;
+  quantity: number;
+  stock_status: 'instock' | 'outofstock' | 'onbackorder';
 }
 
 export interface ProductMeta {

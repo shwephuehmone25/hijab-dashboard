@@ -6,8 +6,12 @@
 export interface OverviewStats {
   totalRevenue: number;
   totalOrders: number;
-  totalCustomers: number;
-  growthRate: number;
+  totalUsers: number;
+  totalProducts: number;
+  pendingOrders: number;
+  processingOrders: number;
+  completedOrders: number;
+  outOfStockProducts: number;
 }
 
 export interface SalesStats {
