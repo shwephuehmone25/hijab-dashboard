@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import React, { useEffect, useState, useCallback, ReactNode } from 'react';
 import api from '@/lib/api';
 import { User } from '@/lib/types';
 import { skipLogin } from '@/lib/devAuth';
+import { AuthContext } from './auth-context';
 
 const previewAdmin: User = {
   id: 1,
@@ -14,21 +15,29 @@ const previewAdmin: User = {
   registered_at: '2024-01-01T00:00:00.000Z',
 };
 
-interface AuthState {
-  admin: User | null;
-  permissions: string[];
-  loading: boolean;
-  login: (payload: { username: string; password: string }) => Promise<void>;
-  logout: () => Promise<void>;
-  hasPermission: (required: string | string[]) => boolean;
-}
+const readStoredAdmin = (): User | null => {
+  if (!localStorage.getItem('access_token')) return null;
+  const storedAdmin = localStorage.getItem('admin_user');
+  if (!storedAdmin) return null;
 
-const AuthContext = createContext<AuthState | undefined>(undefined);
+  try {
+    const parsed = JSON.parse(storedAdmin) as Partial<User>;
+    return typeof parsed.id === 'number' && typeof parsed.username === 'string'
+      ? parsed as User
+      : null;
+  } catch {
+    localStorage.removeItem('admin_user');
+    return null;
+  }
+};
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [admin, setAdmin] = useState<User | null>(skipLogin ? previewAdmin : null);
-  const [permissions, setPermissions] = useState<string[]>(skipLogin ? ['*'] : []);
-  const [loading, setLoading] = useState(!skipLogin);
+  const [initialAdmin] = useState<User | null>(() => skipLogin ? previewAdmin : readStoredAdmin());
+  const [admin, setAdmin] = useState<User | null>(initialAdmin);
+  const [permissions, setPermissions] = useState<string[]>(
+    skipLogin ? ['*'] : initialAdmin?.permissions ?? [],
+  );
+  const [loading, setLoading] = useState(!skipLogin && initialAdmin === null);
 
   const loadProfile = async () => {
     try {
@@ -50,11 +59,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     if (skipLogin) return;
-    if (localStorage.getItem('access_token')) {
-      loadProfile();
+    if (localStorage.getItem('access_token') && !initialAdmin) {
+      void loadProfile();
     } else {
       setLoading(false);
     }
+  }, [initialAdmin]);
+
+  useEffect(() => {
+    if (skipLogin) return;
+    const handleExpiredSession = () => {
+      setAdmin(null);
+      setPermissions([]);
+      setLoading(false);
+    };
+
+    window.addEventListener('admin-auth-expired', handleExpiredSession);
+    return () => window.removeEventListener('admin-auth-expired', handleExpiredSession);
   }, []);
 
   const login = async (payload: { username: string; password: string }) => {
@@ -101,9 +122,4 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     </AuthContext.Provider>
   );
 };
-
-export const useAuth = () => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
-  return ctx;
-};
+AuthProvider.displayName = 'AuthProvider';

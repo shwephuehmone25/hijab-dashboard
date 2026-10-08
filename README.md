@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="./public/logo.png" width="120" alt="E-commerce Dashboard" />
-  <h1>E-commerce Dashboard</h1>
-  <p>A React + TypeScript admin dashboard for e-commerce operations (products, orders, customers, analytics).</p>
+  <img src="./public/logo.png" width="120" alt="momtazhijab Dashboard" />
+  <h1>momtazhijab Dashboard</h1>
+  <p>A React + TypeScript admin dashboard for momtazhijab operations (products, orders, customers, analytics).</p>
 </div>
 
 ---
@@ -13,12 +13,12 @@
 
 ## Preview
 
-- URL: [https://e-commerce-dashboard-three-beige.vercel.app](https://e-commerce-dashboard-three-beige.vercel.app)
+- URL: [https://momtazhijab-dashboard-three-beige.vercel.app](https://momtazhijab-dashboard-three-beige.vercel.app)
 - Demo credentials: `admin` / `admin`
 
 ## Introduction
 
-`e-commerce-dashboard` is a modern admin UI built with React, TypeScript, Vite, Tailwind CSS, and shadcn/ui. It combines shadcn/ui (design-system-friendly primitives) with Ant Design (enterprise-grade data components) to support complex back-office workflows.
+`momtazhijab-dashboard` is a modern admin UI built with React, TypeScript, Vite, Tailwind CSS, and shadcn/ui. It combines shadcn/ui (design-system-friendly primitives) with Ant Design (enterprise-grade data components) to support complex back-office workflows.
 
 ## Highlights
 
@@ -70,7 +70,7 @@ Here are some screenshots in action:
 
 ## Features (Pages)
 
-This repo includes a set of admin pages that cover typical e-commerce back-office modules:
+This repo includes a set of admin pages that cover typical momtazhijab back-office modules:
 
 - Dashboard: overview charts and KPI cards
 - Catalog: products, attributes, categories, tags, product editor
@@ -105,7 +105,7 @@ This repo includes a set of admin pages that cover typical e-commerce back-offic
 Clone the repository:
 ```bash
 git clone <repository-url>
-cd e-commerce-dashboard
+cd momtazhijab-dashboard
 ```
 
 ### Install
@@ -171,7 +171,7 @@ pnpm generate-mocks
 ## Project Structure
 
 ```
-e-commerce-dashboard/
+momtazhijab-dashboard/
 ├── src/
 │   ├── components/          # Reusable UI components
 │   │   ├── ui/              # shadcn/ui base components

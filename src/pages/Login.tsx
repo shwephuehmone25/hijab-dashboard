@@ -1,7 +1,7 @@
 import { Form, Input, Button, Card } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { useState } from 'react';
 import { message } from '@/lib/antdApp';
 
@@ -43,7 +43,7 @@ const Login = () => {
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <h1 style={{ fontSize: 32, fontWeight: 'bold', margin: 0 }}>E-Commerce-Dashboard</h1>
+          <h1 style={{ fontSize: 32, fontWeight: 'bold', margin: 0 }}>momtazhijab-Dashboard</h1>
           <p style={{ color: '#999', marginTop: 8 }}>Sign in to your account</p>
         </div>
         <Form form={form} name="login" onFinish={onFinish} layout="vertical">
