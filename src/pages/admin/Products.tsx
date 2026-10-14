@@ -31,11 +31,33 @@ const renderVariantValues = (
   ) : '—';
 };
 
-const getStatusColor = (value: string) => {
+const renderStatusPill = (value: string) => {
   const normalized = value.toUpperCase();
-  if (normalized === 'ACTIVE' || normalized === 'PUBLISH') return 'green';
-  if (normalized === 'ARCHIVED') return 'default';
-  return 'orange';
+  const isActive = normalized === 'ACTIVE' || normalized === 'PUBLISH';
+  const isArchived = normalized === 'ARCHIVED';
+  const color = isActive ? '#4fbd82' : isArchived ? '#8c8c8c' : '#d89614';
+  const background = isActive ? '#edf9f2' : isArchived ? '#f3f3f3' : '#fff7e6';
+  const label = normalized.charAt(0) + normalized.slice(1).toLowerCase();
+
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '5px 14px',
+        borderRadius: 999,
+        background,
+        color,
+        fontSize: 14,
+        fontWeight: 600,
+        lineHeight: '20px',
+      }}
+    >
+      <span style={{ width: 9, height: 9, borderRadius: '50%', backgroundColor: color }} />
+      {label}
+    </span>
+  );
 };
 
 const Products = () => {
@@ -152,11 +174,7 @@ const Products = () => {
     },
     {
       title: 'Status', dataIndex: 'status', key: 'status', width: 120,
-      render: (value: string) => (
-        <Tag color={getStatusColor(value)}>
-          {value}
-        </Tag>
-      ),
+      render: (value: string) => renderStatusPill(value),
     },
     {
       title: 'Created', dataIndex: 'createdAt', key: 'createdAt', width: 130,
@@ -223,7 +241,7 @@ const Products = () => {
             <Descriptions column={1} bordered size="small">
               <Descriptions.Item label="Name">{detailProduct.name}</Descriptions.Item>
               <Descriptions.Item label="Status">
-                <Tag color={getStatusColor(detailProduct.status)}>{detailProduct.status.toUpperCase()}</Tag>
+                {renderStatusPill(detailProduct.status)}
               </Descriptions.Item>
               <Descriptions.Item label="Type">
                 {detailProduct.variants?.length ? 'Variable' : detailProduct.type ?? '—'}
