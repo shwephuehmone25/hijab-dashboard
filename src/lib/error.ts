@@ -3,7 +3,7 @@ import type { AxiosError } from 'axios';
 
 interface ErrorResponseLike {
   success?: boolean;
-  message?: string;
+  message?: string | string[];
   error?: string;
   errors?: unknown;
 }
@@ -16,14 +16,14 @@ export function getErrorMessage(err: unknown, fallback = 'An error occurred') {
   if (ax && typeof ax === 'object') {
     const data = ax.response?.data;
     if (data && (data.message || data.error)) {
-      return data.message || String(data.error);
+      return Array.isArray(data.message) ? data.message.join('. ') : data.message || String(data.error);
     }
   }
 
   // Our interceptor rejects with ErrorResponse-like objects
   const er = err as ErrorResponseLike;
   if (er && typeof er === 'object' && (er.message || er.error)) {
-    return er.message || String(er.error);
+    return Array.isArray(er.message) ? er.message.join('. ') : er.message || String(er.error);
   }
 
   if (err instanceof Error) return err.message;

@@ -152,7 +152,7 @@ export interface Product {
   category_ids?: number[];
   tag_ids?: number[];
   attributes?: Record<string, string>;
-  variants?: Product[];
+  variants?: ProductVariant[];
   images?: Media[];
   featured_image?: string;
   gallery_images?: string[];
@@ -163,6 +163,63 @@ export interface Product {
   updatedAt?: string;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface ProductVariant {
+  id: number;
+  productId: number;
+  sku: string;
+  color: string | null;
+  style: string | null;
+  size: string | null;
+  price: string;
+  compareAtPrice: string | null;
+  status: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
+  inventory: VariantInventory | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VariantInventory {
+  id: number;
+  variantId: number;
+  quantity: number;
+  reservedQuantity: number;
+  updatedAt: string;
+}
+
+export interface ProductVariantFormValue {
+  id?: number;
+  sku: string;
+  color?: string | null;
+  style?: string | null;
+  size?: string | null;
+  price: number;
+  compareAtPrice?: number | null;
+  status: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
+  quantity: number;
+  reservedQuantity: number;
+}
+
+export interface ProductFormValues {
+  categoryId: number;
+  name: string;
+  description?: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
+  variants: ProductVariantFormValue[];
+}
+
+export interface ProductVariantInput {
+  id?: number;
+  sku: string;
+  color?: string | null;
+  style?: string | null;
+  size?: string | null;
+  price: string;
+  compareAtPrice?: string | null;
+  status?: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
+  quantity?: number;
+  reservedQuantity?: number;
 }
 
 export interface StockUpdate {
@@ -527,23 +584,15 @@ export interface BlacklistUserTokensRequest {
 
 // Request DTOs
 export interface CreateProductRequest {
+  categoryId: number;
   name: string;
-  slug?: string;
-  type: 'simple' | 'variable';
-  status: 'draft' | 'publish' | 'archived';
-  sku?: string;
-  regular_price?: number;
-  sale_price?: number;
-  stock_quantity?: number;
-  manage_stock: boolean;
-  description?: string;
-  short_description?: string;
-  category_ids?: number[];
-  tag_ids?: number[];
+  description?: string | null;
+  status?: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
+  variants?: Omit<ProductVariantInput, 'id'>[];
 }
 
-export interface UpdateProductRequest extends Partial<CreateProductRequest> {
-  id: number;
+export interface UpdateProductRequest extends Omit<Partial<CreateProductRequest>, 'variants'> {
+  variants?: ProductVariantInput[];
 }
 
 // Flash Sale Types

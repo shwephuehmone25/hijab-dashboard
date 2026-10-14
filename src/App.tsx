@@ -13,7 +13,6 @@ import Dashboard from "./pages/admin/Dashboard";
 import Products from "./pages/admin/Products";
 import ProductEditor from "./pages/admin/ProductEditor";
 import Inventory from "./pages/admin/Inventory";
-import ProductVariants from "./pages/admin/ProductVariants";
 import Orders from "./pages/admin/Orders";
 import OrderStats from "./pages/admin/OrderStats";
 import Customers from "./pages/admin/Customers";
@@ -80,7 +79,6 @@ const App = () => (
                 <Route path="products/new" element={<ProductEditor />} />
                 <Route path="products/:id/edit" element={<ProductEditor />} />
                 <Route path="inventory" element={<Inventory />} />
-                <Route path="product-variants" element={<ProductVariants />} />
                 <Route path="categories" element={<Categories />} />
                 <Route path="tags" element={<Tags />} />
                 <Route path="orders" element={<Orders />} />
@@ -124,7 +122,6 @@ const App = () => (
                 <Route path="products/new" element={<ProductEditor />} />
                 <Route path="products/:id/edit" element={<ProductEditor />} />
                 <Route path="inventory" element={<Inventory />} />
-                <Route path="product-variants" element={<ProductVariants />} />
                 <Route path="categories" element={<Categories />} />
                 <Route path="tags" element={<Tags />} />
                 <Route path="orders" element={<Orders />} />

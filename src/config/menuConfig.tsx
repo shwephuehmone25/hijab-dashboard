@@ -27,7 +27,6 @@ import {
   ThunderboltOutlined,
   TrophyOutlined,
   DatabaseOutlined,
-  ApartmentOutlined,
 } from "@ant-design/icons";
 
 /**
@@ -84,12 +83,6 @@ export const menuConfig: MenuItemConfig[] = [
         key: "/admin/inventory",
         icon: <DatabaseOutlined />,
         label: "Inventory",
-        permissions: ["product.list"],
-      },
-      {
-        key: "/admin/product-variants",
-        icon: <ApartmentOutlined />,
-        label: "Product Variants",
         permissions: ["product.list"],
       },
       {

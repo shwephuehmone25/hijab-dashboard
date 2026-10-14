@@ -13,8 +13,8 @@ import {
   Avatar,
   theme,
   Empty,
-  Spin,
   Alert,
+  Statistic,
 } from "antd";
 import type { MenuProps } from "antd";
 import {
@@ -24,9 +24,12 @@ import {
   MoreOutlined,
   EyeOutlined,
   RiseOutlined,
-  ArrowUpOutlined,
-  ArrowDownOutlined,
   ReloadOutlined,
+  AppstoreOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  SyncOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
 import { useQuery } from "@tanstack/react-query";
 import type { Order } from "@/lib/types";
@@ -45,6 +48,10 @@ import dayjs from "dayjs";
 import { Select } from "antd";
 
 const { Title, Text } = Typography;
+const currencyFormatter = new Intl.NumberFormat(undefined, {
+  style: "currency",
+  currency: "USD",
+});
 
 const Dashboard = () => {
   const { token } = theme.useToken();
@@ -130,11 +137,7 @@ const Dashboard = () => {
     refetchCustomers();
   };
 
-  // Loading state for overall dashboard
-  const isInitialLoading = overviewLoading || ordersLoading || revenueLoading;
-
-  // Error state
-  const hasErrors = overviewError || ordersError || revenueError || productsError;
+  const supportingDataError = ordersError || revenueError || productsError;
 
   const recentOrdersTableData = recentOrders?.map((o) => ({
     ...o,
@@ -242,48 +245,69 @@ const Dashboard = () => {
   // Create stat cards from real data
   const statCards = [
     {
-      title: "Daily Revenue",
-      value: overviewStats ? `US$${overviewStats.total_revenue?.toFixed(2) || '0.00'}` : "$0.00",
-      trend: 0,
+      title: "Total Revenue",
+      value: currencyFormatter.format(overviewStats?.totalRevenue ?? 0),
       iconBg: "rgba(22, 119, 255, 0.12)",
       iconColor: token.colorPrimary,
       icon: <DollarOutlined />,
       chart: <DailyRevenue data={transformedRevenueData} height={140} loading={revenueLoading} />,
-      loading: revenueLoading,
+      loading: overviewLoading || revenueLoading,
     },
     {
-      title: "Daily Orders",
-      value: overviewStats?.total_orders || 0,
-      trend: 8, // Would come from API
+      title: "Total Orders",
+      value: overviewStats?.totalOrders ?? 0,
       iconBg: "rgba(250, 140, 22, 0.12)",
       iconColor: "#fa8c16",
       icon: <ShoppingCartOutlined />,
       chart: <DailyOrders data={transformedSalesData} height={140} loading={salesLoading} />,
-      loading: salesLoading,
+      loading: overviewLoading || salesLoading,
     },
     {
-      title: "New Customers",
-      value: overviewStats?.total_users || 0,
-      trend: 5, // Would come from API
+      title: "Total Customers",
+      value: overviewStats?.totalUsers ?? 0,
       iconBg: "rgba(19, 194, 194, 0.12)",
       iconColor: "#13c2c2",
       icon: <UserOutlined />,
       chart: <NewCustomers data={transformedCustomersData} height={140} loading={customersLoading} />,
-      loading: customersLoading,
+      loading: overviewLoading || customersLoading,
+    },
+    {
+      title: "Total Products",
+      value: overviewStats?.totalProducts ?? 0,
+      iconBg: "rgba(114, 46, 209, 0.12)",
+      iconColor: "#722ed1",
+      icon: <AppstoreOutlined />,
+      chart: null,
+      loading: overviewLoading,
     },
   ];
 
-  // Show loading state for initial load
-  if (isInitialLoading) {
-    return (
-      <div style={{ padding: '40px', textAlign: 'center' }}>
-        <Spin size="large" />
-        <Title level={4} style={{ marginTop: 16 }}>
-          Loading dashboard...
-        </Title>
-      </div>
-    );
-  }
+  const summaryMetrics = [
+    {
+      title: "Completed Orders",
+      value: overviewStats?.completedOrders ?? 0,
+      icon: <CheckCircleOutlined />,
+      color: token.colorSuccess,
+    },
+    {
+      title: "Processing Orders",
+      value: overviewStats?.processingOrders ?? 0,
+      icon: <SyncOutlined spin={overviewStats ? overviewStats.processingOrders > 0 : false} />,
+      color: token.colorInfo,
+    },
+    {
+      title: "Pending Orders",
+      value: overviewStats?.pendingOrders ?? 0,
+      icon: <ClockCircleOutlined />,
+      color: token.colorWarning,
+    },
+    {
+      title: "Out of Stock",
+      value: overviewStats?.outOfStockProducts ?? 0,
+      icon: <WarningOutlined />,
+      color: token.colorError,
+    },
+  ];
 
   return (
     <Space direction="vertical" size={24} style={{ width: "100%" }}>
@@ -314,11 +338,26 @@ const Dashboard = () => {
         </Space>
       </Flex>
 
-      {hasErrors && (
+      {overviewError && (
         <Alert
-          message="Data Loading Error"
-          description="Some dashboard data could not be loaded. Please try refreshing the page."
+          message="Overview Data Loading Error"
+          description="The dashboard overview metrics could not be loaded. Please try again."
           type="error"
+          showIcon
+          closable
+          action={
+            <Button size="small" onClick={() => void refetchOverview()} loading={overviewLoading}>
+              Retry
+            </Button>
+          }
+        />
+      )}
+
+      {supportingDataError && !overviewError && (
+        <Alert
+          message="Some dashboard sections are unavailable"
+          description="Overview metrics are current, but one or more supporting charts or lists could not be loaded."
+          type="warning"
           showIcon
           closable
           action={
@@ -331,7 +370,7 @@ const Dashboard = () => {
 
       <Row gutter={[16, 16]}>
         {statCards.map((card) => (
-          <Col key={card.title} xs={24} md={8}>
+          <Col key={card.title} xs={24} md={12} xl={6}>
             <Card
               styles={{ body: { padding: 16 } }}
               variant="borderless"
@@ -355,36 +394,36 @@ const Dashboard = () => {
                   </div>
                   <div>
                     <Text type="secondary">{card.title}</Text>
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 8 }}
-                    >
-                      <Title level={4} style={{ margin: 0 }}>
-                        {card.value}
-                      </Title>
-                      <Text
-                        type={card.trend >= 0 ? "success" : "danger"}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 4,
-                        }}
-                      >
-                        {card.trend >= 0 ? (
-                          <ArrowUpOutlined />
-                        ) : (
-                          <ArrowDownOutlined />
-                        )}
-                        {Math.abs(card.trend)}%
-                      </Text>
-                    </div>
+                    <Title level={4} style={{ margin: 0 }}>
+                      {card.value}
+                    </Title>
                   </div>
                 </Flex>
               </Flex>
-              <div style={{ marginTop: 12 }}>{card.chart}</div>
+              {card.chart ? <div style={{ marginTop: 12 }}>{card.chart}</div> : null}
             </Card>
           </Col>
         ))}
       </Row>
+
+      <Card
+        title="Order and Inventory Summary"
+        variant="borderless"
+        className="shadow-sm"
+        loading={overviewLoading}
+      >
+        <Row gutter={[24, 24]}>
+          {summaryMetrics.map((metric) => (
+            <Col key={metric.title} xs={12} lg={6}>
+              <Statistic
+                title={metric.title}
+                value={metric.value}
+                prefix={<span style={{ color: metric.color }}>{metric.icon}</span>}
+              />
+            </Col>
+          ))}
+        </Row>
+      </Card>
 
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={16}>

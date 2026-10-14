@@ -147,7 +147,7 @@ const Categories = () => {
       form.setFieldValue('imageUrl', response.url);
       const format = response.contentType.replace('image/', '').toUpperCase();
       const sizeInKb = Math.max(1, Math.round(response.bytes / 1024));
-      message.success(`Category image uploaded to AWS S3 (${format}, ${sizeInKb} KB)`);
+      message.success(`Image uploaded successfully (${format}, ${sizeInKb} KB)`);
     } catch (error) {
       setImageFile(previousImage);
       setPreviewImageUrl(previousPreview);

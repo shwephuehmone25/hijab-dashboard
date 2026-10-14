@@ -3,6 +3,9 @@ import {
   MediaMeta,
   User,
   Product,
+  ProductVariant,
+  CreateProductRequest,
+  UpdateProductRequest,
   Order,
   Role,
   Permission,
@@ -390,7 +393,6 @@ const createApi = () => {
         if (params.search?.trim()) query.set('search', params.search.trim());
         if (params.filter?.categoryId) query.set('categoryId', String(params.filter.categoryId));
         if (params.filter?.status) query.set('status', String(params.filter.status));
-        if (params.filter?.type) query.set('filter[type]', String(params.filter.type));
         const response = await api.get(`/products?${query.toString()}`) as unknown as {
           items: Product[]; page: number; limit: number; total: number;
         };
@@ -410,10 +412,10 @@ const createApi = () => {
         return api.get(`/products/search?${queryString}`);
       },
       get: (id: number): Promise<Product> => api.get(`/products/${id}`),
-      create: (payload: UnknownRecord): Promise<Product> => api.post('/products', payload),
-      createSimple: (payload: UnknownRecord): Promise<Product> => api.post('/products', payload),
-      createVariable: (payload: UnknownRecord): Promise<Product> => api.post('/products', payload),
-      update: (id: number, payload: UnknownRecord): Promise<Product> => api.patch(`/products/${id}`, payload),
+      create: (payload: CreateProductRequest): Promise<Product> => api.post('/products', payload),
+      createSimple: (payload: CreateProductRequest): Promise<Product> => api.post('/products', payload),
+      createVariable: (payload: CreateProductRequest): Promise<Product> => api.post('/products', payload),
+      update: (id: number, payload: UpdateProductRequest): Promise<Product> => api.patch(`/products/${id}`, payload),
       delete: (id: number): Promise<unknown> => api.delete(`/products/${id}`),
       batchDelete: (payload: UnknownRecord): Promise<unknown> => api.delete('/products/batch', { data: payload }),
       batchUpdateStatus: (payload: UnknownRecord): Promise<unknown> => api.put('/products/status/batch', payload),
@@ -421,13 +423,62 @@ const createApi = () => {
       byCategory: (categoryId: number, params?: UnknownRecord): Promise<PaginatedResponse<Product>> => api.get(`/products/category/${categoryId}`, { params }),
       byTag: (tagId: number, params?: UnknownRecord): Promise<PaginatedResponse<Product>> => api.get(`/products/tag/${tagId}`, { params }),
       variants: {
-        list: (parentId: number): Promise<{ variants: Product[] }> =>
-          api.get(`/products/variants/${parentId}`),
-        create: (parentId: number, payload: UnknownRecord): Promise<Product> =>
-          api.post(`/products/variants/${parentId}`, payload),
-        update: (variantId: number, payload: UnknownRecord): Promise<Product> =>
-          api.put(`/products/variants/${variantId}`, payload),
-        delete: (variantId: number): Promise<unknown> => api.delete(`/products/variants/${variantId}`),
+        list: async (productId: number): Promise<{ variants: Product[] }> => {
+          const response = await api.get(
+            `/product-variants?${new URLSearchParams({ productId: String(productId), limit: '100' })}`,
+          ) as unknown as { items: ProductVariant[] };
+          return {
+            variants: response.items.map((variant) => ({
+              id: variant.id,
+              categoryId: 0,
+              parent_id: variant.productId,
+              name: [variant.color, variant.style, variant.size].filter(Boolean).join(' / ') || variant.sku,
+              type: 'variant',
+              status: variant.status,
+              sku: variant.sku,
+              regular_price: Number(variant.compareAtPrice ?? variant.price),
+              sale_price: variant.compareAtPrice ? Number(variant.price) : undefined,
+              attributes: {
+                ...(variant.color ? { color: variant.color } : {}),
+                ...(variant.style ? { fabric: variant.style } : {}),
+                ...(variant.size ? { size: variant.size } : {}),
+              },
+              createdAt: variant.createdAt,
+              updatedAt: variant.updatedAt,
+            })),
+          };
+        },
+        create: (productId: number, payload: UnknownRecord): Promise<ProductVariant> => {
+          const values = payload as Record<string, unknown>;
+          const attributes = (values.attributes ?? {}) as Record<string, string>;
+          const salePrice = values.sale_price as number | undefined;
+          const regularPrice = values.regular_price as number;
+          return api.post('/product-variants', {
+            productId,
+            sku: values.sku,
+            color: attributes.color,
+            style: attributes.style ?? attributes.fabric,
+            size: attributes.size,
+            price: String(salePrice ?? regularPrice),
+            compareAtPrice: salePrice == null ? null : String(regularPrice),
+            status: 'ACTIVE',
+          });
+        },
+        update: (variantId: number, payload: UnknownRecord): Promise<ProductVariant> => {
+          const values = payload as Record<string, unknown>;
+          const attributes = (values.attributes ?? {}) as Record<string, string>;
+          const salePrice = values.sale_price as number | undefined;
+          const regularPrice = values.regular_price as number;
+          return api.patch(`/product-variants/${variantId}`, {
+            sku: values.sku,
+            color: attributes.color ?? null,
+            style: attributes.style ?? attributes.fabric ?? null,
+            size: attributes.size ?? null,
+            price: String(salePrice ?? regularPrice),
+            compareAtPrice: salePrice == null ? null : String(regularPrice),
+          });
+        },
+        delete: (variantId: number): Promise<unknown> => api.delete(`/product-variants/${variantId}`),
       },
       stock: {
         update: (productId: number, quantity: number): Promise<unknown> =>
